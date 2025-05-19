@@ -2,6 +2,7 @@
 using OpenAI;
 using Soenneker.Extensions.ValueTask;
 using Soenneker.SemanticKernel.Dtos.Options;
+using Soenneker.SemanticKernel.Enums.KernelType;
 using Soenneker.SemanticKernel.Pool.Abstract;
 using System;
 using System.ClientModel;
@@ -11,42 +12,55 @@ using System.Threading.Tasks;
 namespace Soenneker.SemanticKernel.Pool.OpenAi;
 
 /// <summary>
-/// Provides OpenAI-specific registration extensions for KernelPoolManager, enabling integration with local LLMs via Semantic Kernel.
+/// Provides OpenAI-specific registration extensions for KernelPoolManager, enabling integration with OpenAI models via Semantic Kernel.
 /// </summary>
 public static class SemanticKernelPoolOpenAiExtension
 {
     /// <summary>
-    /// Registers an OpenAi model in the kernel pool with optional rate and token limits.
+    /// Registers an OpenAI model in the kernel pool with the specified kernel type and optional rate/token limits.
     /// </summary>
-    /// <param name="pool">The kernel pool manager to register the model with.</param>
-    /// <param name="key">A unique identifier used to register and later reference the model.</param>
-    /// <param name="modelId">The OpenAi model ID to be used for chat completion.</param>
-    /// <param name="apiKey"></param>
-    /// <param name="endpoint">The base URI endpoint for the OpenAi service.</param>
-    /// <param name="rps">Optional maximum number of requests allowed per second.</param>
-    /// <param name="rpm">Optional maximum number of requests allowed per minute.</param>
-    /// <param name="rpd">Optional maximum number of requests allowed per day.</param>
-    /// <param name="tokensPerDay">Optional maximum number of tokens allowed per day.</param>
-    /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
-    /// <returns>A <see cref="ValueTask"/> representing the asynchronous registration operation.</returns>
-    public static ValueTask RegisterOpenAi(this ISemanticKernelPool pool, string key, string modelId, string apiKey, string endpoint,
-        int? rps, int? rpm, int? rpd, int? tokensPerDay = null, CancellationToken cancellationToken = default)
+    public static ValueTask RegisterOpenAi(this ISemanticKernelPool pool,
+        string key,
+        KernelType type,
+        string modelId,
+        string apiKey,
+        string endpoint,
+        int? rps,
+        int? rpm,
+        int? rpd,
+        int? tokensPerDay = null,
+        CancellationToken cancellationToken = default)
     {
         var options = new SemanticKernelOptions
         {
+            Type = type,
             ModelId = modelId,
             Endpoint = endpoint,
+            ApiKey = apiKey,
             RequestsPerSecond = rps,
             RequestsPerMinute = rpm,
             RequestsPerDay = rpd,
             TokensPerDay = tokensPerDay,
-            KernelFactory = async (opts, _) =>
+            KernelFactory = (opts, _) =>
             {
-#pragma warning disable SKEXP0070
-                return Kernel.CreateBuilder()
-                             .AddOpenAIChatCompletion(modelId: opts.ModelId!,
-                                 new OpenAIClient(new ApiKeyCredential(apiKey), new OpenAIClientOptions {Endpoint = new Uri(endpoint)}));
-#pragma warning restore SKEXP0070
+#pragma warning disable SKEXP0010
+                var client = new OpenAIClient(new ApiKeyCredential(apiKey), new OpenAIClientOptions
+                {
+                    Endpoint = new Uri(endpoint)
+                });
+
+                return type switch
+                {
+                    _ when type == KernelType.Chat =>
+                        ValueTask.FromResult(Kernel.CreateBuilder().AddOpenAIChatCompletion(opts.ModelId!, client)),
+                    _ when type == KernelType.Image =>
+                        ValueTask.FromResult(Kernel.CreateBuilder().AddOpenAITextToImage(opts.ApiKey!, null, opts.ModelId)),
+                    _ when type == KernelType.Embedding =>
+                        ValueTask.FromResult(Kernel.CreateBuilder().AddOpenAIEmbeddingGenerator(opts.ModelId!, client)),
+
+                    _ => throw new NotSupportedException($"Unsupported KernelType '{type}' for OpenAI registration.")
+                };
+#pragma warning restore SKEXP0010
             }
         };
 
@@ -54,12 +68,8 @@ public static class SemanticKernelPoolOpenAiExtension
     }
 
     /// <summary>
-    /// Unregisters an OpenAi model from the kernel pool and kernel cache entries.
+    /// Unregisters an OpenAI model from the kernel pool and removes the associated kernel cache entry.
     /// </summary>
-    /// <param name="pool">The kernel pool manager to unregister the model from.</param>
-    /// <param name="key">The unique identifier used during registration.</param>
-    /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
-    /// <returns>A <see cref="ValueTask"/> representing the asynchronous unregistration operation.</returns>
     public static async ValueTask UnregisterOpenAi(this ISemanticKernelPool pool, string key, CancellationToken cancellationToken = default)
     {
         await pool.Unregister(key, cancellationToken).NoSync();
