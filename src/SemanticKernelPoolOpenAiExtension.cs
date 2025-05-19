@@ -13,7 +13,7 @@ namespace Soenneker.SemanticKernel.Pool.OpenAi;
 /// <summary>
 /// Provides OpenAI-specific registration extensions for KernelPoolManager, enabling integration with local LLMs via Semantic Kernel.
 /// </summary>
-public static class KernelPoolOpenAiExtension
+public static class SemanticKernelPoolOpenAiExtension
 {
     /// <summary>
     /// Registers an OpenAi model in the kernel pool with optional rate and token limits.
@@ -29,7 +29,7 @@ public static class KernelPoolOpenAiExtension
     /// <param name="tokensPerDay">Optional maximum number of tokens allowed per day.</param>
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
     /// <returns>A <see cref="ValueTask"/> representing the asynchronous registration operation.</returns>
-    public static ValueTask RegisterOpenAi(this IKernelPoolManager pool, string key, string modelId, string apiKey, string endpoint,
+    public static ValueTask RegisterOpenAi(this ISemanticKernelPool pool, string key, string modelId, string apiKey, string endpoint,
         int? rps, int? rpm, int? rpd, int? tokensPerDay = null, CancellationToken cancellationToken = default)
     {
         var options = new SemanticKernelOptions
@@ -60,7 +60,7 @@ public static class KernelPoolOpenAiExtension
     /// <param name="key">The unique identifier used during registration.</param>
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
     /// <returns>A <see cref="ValueTask"/> representing the asynchronous unregistration operation.</returns>
-    public static async ValueTask UnregisterOpenAi(this IKernelPoolManager pool, string key, CancellationToken cancellationToken = default)
+    public static async ValueTask UnregisterOpenAi(this ISemanticKernelPool pool, string key, CancellationToken cancellationToken = default)
     {
         await pool.Unregister(key, cancellationToken).NoSync();
     }
