@@ -22,7 +22,7 @@ public static class SemanticKernelPoolOpenAiExtension
     /// <summary>
     /// Registers an OpenAI model in the kernel pool with the specified kernel type and optional rate/token limits.
     /// </summary>
-    public static ValueTask RegisterOpenAi(this ISemanticKernelPool pool, string key, KernelType type, string modelId, string apiKey, string endpoint,
+    public static ValueTask AddOpenAi(this ISemanticKernelPool pool, string poolId, string key, KernelType type, string modelId, string apiKey, string endpoint,
         IHttpClientCache httpClientCache, int? rps, int? rpm, int? rpd, int? tokensPerDay = null, CancellationToken cancellationToken = default)
     {
         var options = new SemanticKernelOptions
@@ -37,7 +37,7 @@ public static class SemanticKernelPoolOpenAiExtension
             TokensPerDay = tokensPerDay,
             KernelFactory = async (opts, _) =>
             {
-                HttpClient httpClient = await httpClientCache.Get($"openai:{modelId}", () => new HttpClientOptions
+                HttpClient httpClient = await httpClientCache.Get($"openai:{poolId}:{key}", () => new HttpClientOptions
                                                              {
                                                                  Timeout = TimeSpan.FromSeconds(300)
                                                              }, cancellationToken)
@@ -62,15 +62,15 @@ public static class SemanticKernelPoolOpenAiExtension
             }
         };
 
-        return pool.Register(key, options, cancellationToken);
+        return pool.Add(poolId, key, options, cancellationToken);
     }
 
     /// <summary>
     /// Unregisters an OpenAI model from the kernel pool and removes the associated kernel cache entry.
     /// </summary>
-    public static async ValueTask UnregisterOpenAi(this ISemanticKernelPool pool, string key, IHttpClientCache httpClientCache, CancellationToken cancellationToken = default)
+    public static async ValueTask RemoveOpenAi(this ISemanticKernelPool pool, string poolId, string key, IHttpClientCache httpClientCache, CancellationToken cancellationToken = default)
     {
-        await pool.Unregister(key, cancellationToken).NoSync();
-        await httpClientCache.Remove($"openai:{key}", cancellationToken).NoSync();
+        await pool.Remove(poolId, key, cancellationToken).NoSync();
+        await httpClientCache.Remove($"openai:{poolId}:{key}", cancellationToken).NoSync();
     }
 }
