@@ -37,11 +37,12 @@ public static class SemanticKernelPoolOpenAiExtension
             TokensPerDay = tokensPerDay,
             KernelFactory = async (opts, _) =>
             {
-                HttpClient httpClient = await httpClientCache.Get($"openai:{poolId}:{key}", () => new HttpClientOptions
-                                                             {
-                                                                 Timeout = TimeSpan.FromSeconds(300)
-                                                             }, cancellationToken)
-                                                             .NoSync();
+                // No closure: static lambda with no state needed
+                HttpClient httpClient = await httpClientCache.Get($"openai:{poolId}:{key}", static () => new HttpClientOptions
+                {
+                    Timeout = TimeSpan.FromSeconds(300)
+                }, cancellationToken)
+                .NoSync();
 
 #pragma warning disable SKEXP0010
                 var client = new OpenAIClient(new ApiKeyCredential(apiKey), new OpenAIClientOptions

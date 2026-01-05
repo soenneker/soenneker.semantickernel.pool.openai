@@ -42,12 +42,7 @@
 
     <ItemGroup>
         <PackageReference Include="Microsoft.SemanticKernel.Connectors.OpenAI" Version="1.68.0" />
-<<<<<<< HEAD
-        <PackageReference Include="Soenneker.SemanticKernel.Pool" Version="4.0.188" />
-        <PackageReference Include="Soenneker.Utils.HttpClientCache" Version="4.0.1809" />
-=======
         <PackageReference Include="Soenneker.SemanticKernel.Pool" Version="4.0.189" />
-        <PackageReference Include="Soenneker.Utils.HttpClientCache" Version="4.0.1807" />
->>>>>>> cf1f05ef6909b8dd9d7732109a64325134174deb
+        <PackageReference Include="Soenneker.Utils.HttpClientCache" Version="4.0.1809" />
     </ItemGroup>
 </Project>
