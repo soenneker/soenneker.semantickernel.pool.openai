@@ -72,6 +72,6 @@ public static class SemanticKernelPoolOpenAiExtension
     public static async ValueTask RemoveOpenAi(this ISemanticKernelPool pool, string poolId, string key, IHttpClientCache httpClientCache, CancellationToken cancellationToken = default)
     {
         await pool.Remove(poolId, key, cancellationToken).NoSync();
-        await httpClientCache.Remove($"openai:{poolId}:{key}", cancellationToken).NoSync();
+        await httpClientCache.Remove($"openai:{poolId}:{key}").NoSync();
     }
 }
