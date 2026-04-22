@@ -1,16 +1,15 @@
-﻿using Soenneker.Tests.FixturedUnit;
-using Xunit;
+using Soenneker.Tests.HostedUnit;
 
 namespace Soenneker.SemanticKernel.Pool.OpenAi.Tests;
 
-[Collection("Collection")]
-public class KernelPoolOpenAiExtensionTests : FixturedUnitTest
+[ClassDataSource<Host>(Shared = SharedType.PerTestSession)]
+public class KernelPoolOpenAiExtensionTests : HostedUnitTest
 {
-    public KernelPoolOpenAiExtensionTests(Fixture fixture, ITestOutputHelper output) : base(fixture, output)
+    public KernelPoolOpenAiExtensionTests(Host host) : base(host)
     {
     }
 
-    [Fact]
+    [Test]
     public void Default()
     {
 
