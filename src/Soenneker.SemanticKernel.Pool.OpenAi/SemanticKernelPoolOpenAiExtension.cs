@@ -22,6 +22,20 @@ public static class SemanticKernelPoolOpenAiExtension
     /// <summary>
     /// Registers an OpenAI model in the kernel pool with the specified kernel type and optional rate/token limits.
     /// </summary>
+    /// <param name="pool">Pool that supplies the reusable resource.</param>
+    /// <param name="poolId">Identifier of the target pool.</param>
+    /// <param name="key">Key used to locate the target entry.</param>
+    /// <param name="type">Runtime type to inspect or construct.</param>
+    /// <param name="modelId">Identifier of the model to use.</param>
+    /// <param name="apiKey">API key used to authenticate the request.</param>
+    /// <param name="endpoint">Service endpoint to call.</param>
+    /// <param name="httpClientCache">http Client Cache used to communicate with the external service.</param>
+    /// <param name="rps">Optional requests-per-second limit.</param>
+    /// <param name="rpm">Optional requests-per-minute limit.</param>
+    /// <param name="rpd">Optional requests-per-day limit.</param>
+    /// <param name="tokensPerDay">Optional daily token limit.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>A task that completes when the open ai addition is complete.</returns>
     public static ValueTask AddOpenAi(this ISemanticKernelPool pool, string poolId, string key, KernelType type, string modelId, string apiKey, string endpoint,
         IHttpClientCache httpClientCache, int? rps, int? rpm, int? rpd, int? tokensPerDay = null, CancellationToken cancellationToken = default)
     {
@@ -69,6 +83,12 @@ public static class SemanticKernelPoolOpenAiExtension
     /// <summary>
     /// Unregisters an OpenAI model from the kernel pool and removes the associated kernel cache entry.
     /// </summary>
+    /// <param name="pool">Pool that supplies the reusable resource.</param>
+    /// <param name="poolId">Identifier of the target pool.</param>
+    /// <param name="key">Key used to locate the target entry.</param>
+    /// <param name="httpClientCache">http Client Cache used to communicate with the external service.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>A task that completes when the open ai removal is complete.</returns>
     public static async ValueTask RemoveOpenAi(this ISemanticKernelPool pool, string poolId, string key, IHttpClientCache httpClientCache, CancellationToken cancellationToken = default)
     {
         await pool.Remove(poolId, key, cancellationToken).NoSync();
