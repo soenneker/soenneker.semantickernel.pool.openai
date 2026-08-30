@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 namespace Soenneker.SemanticKernel.Pool.OpenAi;
 
 /// <summary>
-/// Provides OpenAI-specific registration extensions for KernelPoolManager, enabling integration with OpenAI models via Semantic Kernel.
+/// Provides OpenAI connector registration extensions for <see cref="ISemanticKernelPool"/>.
 /// </summary>
 public static class SemanticKernelPoolOpenAiExtension
 {
@@ -25,7 +25,7 @@ public static class SemanticKernelPoolOpenAiExtension
     /// <param name="pool">Pool that supplies the reusable resource.</param>
     /// <param name="poolId">Identifier of the target pool.</param>
     /// <param name="key">Key used to locate the target entry.</param>
-    /// <param name="type">Runtime type to inspect or construct.</param>
+    /// <param name="type">The connector type. Chat, embedding, audio, and image are supported.</param>
     /// <param name="modelId">Identifier of the model to use.</param>
     /// <param name="apiKey">API key used to authenticate the request.</param>
     /// <param name="endpoint">Service endpoint to call.</param>
@@ -49,29 +49,27 @@ public static class SemanticKernelPoolOpenAiExtension
             RequestsPerMinute = rpm,
             RequestsPerDay = rpd,
             TokensPerDay = tokensPerDay,
-            KernelFactory = async (opts, _) =>
+            KernelFactory = async (opts, factoryCancellationToken) =>
             {
-                // No closure: static lambda with no state needed
                 HttpClient httpClient = await httpClientCache.Get($"openai:{poolId}:{key}", static () => new HttpClientOptions
                 {
                     Timeout = TimeSpan.FromSeconds(300)
-                }, cancellationToken)
+                }, factoryCancellationToken)
                 .NoSync();
 
 #pragma warning disable SKEXP0010
-                var client = new OpenAIClient(new ApiKeyCredential(apiKey), new OpenAIClientOptions
+                var client = new OpenAIClient(new ApiKeyCredential(opts.ApiKey!), new OpenAIClientOptions
                 {
-                    Endpoint = new Uri(endpoint)
+                    Endpoint = new Uri(opts.Endpoint!)
                 });
 
-                return type switch
+                return opts.Type switch
                 {
-                    _ when type == KernelType.Chat => Kernel.CreateBuilder().AddOpenAIChatCompletion(opts.ModelId!, client),
-                    _ when type == KernelType.Audio => Kernel.CreateBuilder().AddOpenAITextToAudio(opts.ModelId!, opts.ApiKey!, httpClient: httpClient),
-                    _ when type == KernelType.Image => Kernel.CreateBuilder().AddOpenAITextToImage(opts.ApiKey!, null, opts.ModelId, httpClient: httpClient),
-                    _ when type == KernelType.Embedding => Kernel.CreateBuilder().AddOpenAIEmbeddingGenerator(opts.ModelId!, client),
-
-                    _ => throw new NotSupportedException($"Unsupported KernelType '{type}' for OpenAI registration.")
+                    var t when t == KernelType.Chat => Kernel.CreateBuilder().AddOpenAIChatCompletion(opts.ModelId!, client),
+                    var t when t == KernelType.Audio => Kernel.CreateBuilder().AddOpenAITextToAudio(opts.ModelId!, opts.ApiKey!, httpClient: httpClient),
+                    var t when t == KernelType.Image => Kernel.CreateBuilder().AddOpenAITextToImage(opts.ApiKey!, null, opts.ModelId, httpClient: httpClient),
+                    var t when t == KernelType.Embedding => Kernel.CreateBuilder().AddOpenAIEmbeddingGenerator(opts.ModelId!, client),
+                    _ => throw new NotSupportedException($"Unsupported KernelType '{opts.Type}' for OpenAI registration.")
                 };
 #pragma warning restore SKEXP0010
             }

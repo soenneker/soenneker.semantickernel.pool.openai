@@ -1,40 +1,64 @@
 [![](https://img.shields.io/nuget/v/soenneker.semantickernel.pool.openai.svg?style=for-the-badge)](https://www.nuget.org/packages/soenneker.semantickernel.pool.openai/)
 [![](https://img.shields.io/github/actions/workflow/status/soenneker/soenneker.semantickernel.pool.openai/publish-package.yml?style=for-the-badge)](https://github.com/soenneker/soenneker.semantickernel.pool.openai/actions/workflows/publish-package.yml)
-[![](https://img.shields.io/nuget/dt/soenneker.semantickernel.pool.openai.svg?style=for-the-badge)](https://www.nuget.org/packages/soenneker.semantickernel.pool.openai/)
+[![](https://img.shields.io/nuget/dt/soenneker.semantickernel.pool.openai.svg?style=for-the-badge)](https://www.nuget.org/packages/soenneker/soenneker.semantickernel.pool.openai/)
 [![](https://img.shields.io/github/actions/workflow/status/soenneker/soenneker.semantickernel.pool.openai/codeql.yml?label=CodeQL&style=for-the-badge)](https://github.com/soenneker/soenneker.semantickernel.pool.openai/actions/workflows/codeql.yml)
 
 # Soenneker.SemanticKernel.Pool.OpenAi
 
-Provides OpenAI-specific registration extensions for KernelPoolManager, enabling integration with OpenAI models via Semantic Kernel.
+OpenAI connector registration helpers for `Soenneker.SemanticKernel.Pool`.
 
-## Install
+## Installation
 
 ```bash
 dotnet add package Soenneker.SemanticKernel.Pool.OpenAi
 ```
 
-## Quick start
+## Add an OpenAI entry
+
+Resolve the pool and HTTP client cache from dependency injection, then register an entry:
 
 ```csharp
+using Soenneker.SemanticKernel.Enums.KernelType;
 using Soenneker.SemanticKernel.Pool.OpenAi;
 
-ISemanticKernelPool pool = /* obtain from your application */;
-await pool.AddOpenAi("value", "value", /* supply type */ default!, "value", "value", "value", /* supply httpClientCache */ default!, 1, 1, 1, default);
+await pool.AddOpenAi(
+    poolId: "chat",
+    key: "openai-primary",
+    type: KernelType.Chat,
+    modelId: "chat-model-id",
+    apiKey: configuration["OpenAI:ApiKey"]!,
+    endpoint: "https://api.openai.com/v1",
+    httpClientCache: httpClientCache,
+    rps: 2,
+    rpm: 60,
+    rpd: 1_000,
+    tokensPerDay: null,
+    cancellationToken);
 ```
 
-Registers an OpenAI model in the kernel pool with the specified kernel type and optional rate/token limits.
+Supported types are:
 
-## What you get
+- `KernelType.Chat` for chat completion
+- `KernelType.Embedding` for embedding generation
+- `KernelType.Audio` for text-to-audio
+- `KernelType.Image` for text-to-image
 
-- `SemanticKernelPoolOpenAiExtension` — Provides OpenAI-specific registration extensions for KernelPoolManager, enabling integration with OpenAI models via Semantic Kernel.
+Other types throw `NotSupportedException` when the pool first constructs the kernel.
 
-## API at a glance
+Chat and embedding create an `OpenAIClient` using the supplied endpoint. Audio and image use Semantic Kernel connector overloads that receive the API key and cached `HttpClient`, but this adapter does not apply the supplied endpoint to those paths. Use this package's audio/image registrations only when the connector's default endpoint is appropriate.
 
-| API | What it does | Result / important behavior |
-| --- | --- | --- |
-| `SemanticKernelPoolOpenAiExtension.AddOpenAi(pool, poolId, key, type, modelId, apiKey, endpoint, httpClientCache, rps, rpm, rpd, tokensPerDay, cancellationToken)` | Registers an OpenAI model in the kernel pool with the specified kernel type and optional rate/token limits. | A task that completes when the open ai addition is complete. |
-| `SemanticKernelPoolOpenAiExtension.RemoveOpenAi(pool, poolId, key, httpClientCache, cancellationToken)` | Unregisters an OpenAI model from the kernel pool and removes the associated kernel cache entry. | A task that completes when the open ai removal is complete. |
+The HTTP client is cached under `openai:{poolId}:{key}` with a five-minute timeout. Pool quota values are reservations made when `GetAvailable` selects the entry. `tokensPerDay` counts one unit per acquisition; it is not populated from provider token usage.
 
-## Practical notes
+## Remove the entry
 
-- Cancellation stops pending work; it does not undo work that has already completed.
+Use the matching helper so both the pool entry and cached HTTP client are removed:
+
+```csharp
+await pool.RemoveOpenAi(
+    "chat",
+    "openai-primary",
+    httpClientCache,
+    cancellationToken);
+```
+
+Keep the API key in a protected configuration provider and avoid logging or serializing the generated `SemanticKernelOptions`.
